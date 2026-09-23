@@ -8,7 +8,7 @@ def _bronze_sc5(spark, **alteracoes):
     linha = {
         "c5_filial": "01", "c5_num": "000123", "c5_tipo": "N", "c5_cliente": "000001", "c5_lojacli": "01",
         "c5_vend1": "000002", "c5_emissao": "20261013", "c5_nota": "         ", "d_e_l_e_t_": " ",
-        "r_e_c_n_o_": 10, "r_e_c_d_e_l_": 0, "s_t_a_m_p_": datetime(2026, 10, 13, 9, 0), "_empresa": "08",
+        "r_e_c_n_o_": 10, "s_t_a_m_p_": datetime(2026, 10, 13, 9, 0), "_empresa": "08",
         "_lote": "20261013T090000Z",
     }
     linha.update(alteracoes)
@@ -40,7 +40,7 @@ def test_ultima_versao_mantem_maior_stamp(spark):
 
 def test_ultimo_snapshot_por_empresa(spark):
     base = {"a3_filial": "  ", "a3_cod": "000001", "a3_nome": "Vendedor 001", "d_e_l_e_t_": " ",
-            "r_e_c_n_o_": 1, "r_e_c_d_e_l_": 0, "s_t_a_m_p_": datetime(2026, 10, 1)}
+            "r_e_c_n_o_": 1, "s_t_a_m_p_": datetime(2026, 10, 1)}
     linhas = [
         {**base, "_empresa": "01", "_lote": "20261001T000000Z"},
         {**base, "_empresa": "01", "_lote": "20261002T000000Z"},

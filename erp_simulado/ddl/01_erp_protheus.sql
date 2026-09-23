@@ -1,5 +1,5 @@
 -- ERP Protheus simulado: tabelas SC5, SC6, SA1, SA3 e SB1 por empresa (sufixo <empresa>0),
--- com os campos de controle do Protheus (D_E_L_E_T_, R_E_C_N_O_, R_E_C_D_E_L_ e S_T_A_M_P_).
+-- com os campos de controle do Protheus (D_E_L_E_T_, R_E_C_N_O_ e S_T_A_M_P_).
 -- Executado automaticamente pelo container do PostgreSQL na primeira inicialização.
 
 CREATE OR REPLACE FUNCTION public.fn_atualiza_stamp() RETURNS trigger
@@ -29,7 +29,6 @@ BEGIN
                 c5_nota      char(9)  NOT NULL DEFAULT ' ',
                 d_e_l_e_t_   char(1)  NOT NULL DEFAULT ' ',
                 r_e_c_n_o_   bigserial PRIMARY KEY,
-                r_e_c_d_e_l_ bigint   NOT NULL DEFAULT 0,
                 s_t_a_m_p_   timestamp
             )$ddl$, 'sc5' || emp || '0');
 
@@ -46,7 +45,6 @@ BEGIN
                 c6_nota      char(9)       NOT NULL DEFAULT ' ',
                 d_e_l_e_t_   char(1)       NOT NULL DEFAULT ' ',
                 r_e_c_n_o_   bigserial PRIMARY KEY,
-                r_e_c_d_e_l_ bigint        NOT NULL DEFAULT 0,
                 s_t_a_m_p_   timestamp
             )$ddl$, 'sc6' || emp || '0');
 
@@ -64,7 +62,6 @@ BEGIN
                 a1_msblql    char(1)     NOT NULL DEFAULT '2',
                 d_e_l_e_t_   char(1)     NOT NULL DEFAULT ' ',
                 r_e_c_n_o_   bigserial PRIMARY KEY,
-                r_e_c_d_e_l_ bigint      NOT NULL DEFAULT 0,
                 s_t_a_m_p_   timestamp
             )$ddl$, 'sa1' || emp || '0');
 
@@ -75,7 +72,6 @@ BEGIN
                 a3_nome      varchar(40) NOT NULL,
                 d_e_l_e_t_   char(1)     NOT NULL DEFAULT ' ',
                 r_e_c_n_o_   bigserial PRIMARY KEY,
-                r_e_c_d_e_l_ bigint      NOT NULL DEFAULT 0,
                 s_t_a_m_p_   timestamp
             )$ddl$, 'sa3' || emp || '0');
 
@@ -90,7 +86,6 @@ BEGIN
                 b1_prv1      numeric(14,2) NOT NULL,
                 d_e_l_e_t_   char(1)       NOT NULL DEFAULT ' ',
                 r_e_c_n_o_   bigserial PRIMARY KEY,
-                r_e_c_d_e_l_ bigint        NOT NULL DEFAULT 0,
                 s_t_a_m_p_   timestamp
             )$ddl$, 'sb1' || emp || '0');
 

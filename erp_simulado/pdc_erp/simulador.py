@@ -1,7 +1,7 @@
 """Simulador da movimentação diária do Protheus em cada empresa e filial.
 
 A cada execução: inclui pedidos, altera parte dos pedidos em aberto (quantidade, preço ou faturamento),
-exclui logicamente alguns pedidos (D_E_L_E_T_ = '*' e R_E_C_D_E_L_ = R_E_C_N_O_) e, ocasionalmente,
+exclui logicamente alguns pedidos (D_E_L_E_T_ = '*') e, ocasionalmente,
 inclui ou altera cadastros. O S_T_A_M_P_ é atualizado pelo trigger do banco, não por este código.
 Nunca exclui fisicamente nem reutiliza R_E_C_N_O_.
 """
@@ -57,9 +57,9 @@ def _movimentar_pedidos(cur, config: dict, rng: random.Random, unidade: dict, ho
     alterar = abertos[n_exc + n_fat:n_exc + n_fat + n_alt]
 
     for numero in excluir:
-        banco.executar(cur, "UPDATE {} SET d_e_l_e_t_ = '*', r_e_c_d_e_l_ = r_e_c_n_o_ "
+        banco.executar(cur, "UPDATE {} SET d_e_l_e_t_ = '*' "
                        "WHERE c5_filial = %s AND c5_num = %s AND d_e_l_e_t_ = ' '", t_sc5, (filial, numero))
-        banco.executar(cur, "UPDATE {} SET d_e_l_e_t_ = '*', r_e_c_d_e_l_ = r_e_c_n_o_ "
+        banco.executar(cur, "UPDATE {} SET d_e_l_e_t_ = '*' "
                        "WHERE c6_filial = %s AND c6_num = %s AND d_e_l_e_t_ = ' '", t_sc6, (filial, numero))
     resumo["pedidos_excluidos"] += len(excluir)
 
