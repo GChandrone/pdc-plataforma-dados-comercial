@@ -1,0 +1,53 @@
+# Databricks Asset Bundle do projeto PDC — Plataforma de Dados Comercial.
+# Dois ambientes no mesmo workspace Free Edition, separados por catálogos e pelos targets dev e prd.
+# O host e o token vêm das variáveis de ambiente DATABRICKS_HOST e DATABRICKS_TOKEN.
+
+bundle:
+  name: pdc-plataforma-dados-comercial
+
+include:
+  - resources/*.yml
+
+sync:
+  exclude:
+    - airflow/**
+    - erp_simulado/**
+    - extrator/**
+    - tests/**
+    - docs/**
+    - conf/**
+    - .github/**
+
+variables:
+  catalogo_bronze:
+    description: Catálogo da camada Bronze
+    default: dev_bronze
+  catalogo_silver:
+    description: Catálogo da camada Silver
+    default: dev_silver
+  catalogo_gold:
+    description: Catálogo da camada Gold
+    default: dev_gold
+  landing_path:
+    description: Volume de landing compartilhado, gravado apenas pelo extrator
+    default: /Volumes/landing/protheus/arquivos
+  warehouse_id:
+    description: SQL Warehouse usado pelo dashboard
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
+
+targets:
+  dev:
+    mode: development
+    default: true
+
+  prd:
+    mode: production
+    variables:
+      catalogo_bronze: bronze
+      catalogo_silver: silver
+      catalogo_gold: gold
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/prd
+    run_as:
+      user_name: ${workspace.current_user.userName}

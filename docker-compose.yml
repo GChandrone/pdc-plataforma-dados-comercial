@@ -1,0 +1,80 @@
+# Ambiente local do PDC: PostgreSQL do ERP simulado + Airflow (com banco de metadados próprio).
+# Todas as portas ficam restritas a 127.0.0.1 (acesso somente pela própria máquina).
+# Uso: cp .env.example .env  (preencher)  ->  docker compose up -d --build
+
+name: pdc
+
+services:
+  erp-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:?Defina PG_USER no .env}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Defina PG_PASSWORD no .env}
+      POSTGRES_DB: ${PG_DB:-erp_protheus}
+      TZ: UTC
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - erp-dados:/var/lib/postgresql/data
+      - ./erp_simulado/ddl:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  airflow-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?Defina AIRFLOW_DB_PASSWORD no .env}
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-metadados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    image: pdc-airflow:local
+    restart: unless-stopped
+    command: standalone
+    depends_on:
+      erp-db:
+        condition: service_healthy
+      airflow-db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD}@airflow-db:5432/airflow
+      # Ambiente local de uso individual, exposto apenas em 127.0.0.1: todos os usuários da UI são administradores.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+      AIRFLOW_CONN_DATABRICKS_DEFAULT: '{"conn_type": "databricks", "host": "${DATABRICKS_HOST}", "password": "${DATABRICKS_TOKEN}"}'
+      PG_HOST: erp-db
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-erp_protheus}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      DATABRICKS_HOST: ${DATABRICKS_HOST}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN}
+      LANDING_PATH: ${LANDING_PATH:-/Volumes/landing/protheus/arquivos}
+      OVERLAP_MINUTES: ${OVERLAP_MINUTES:-10}
+      ERP_CONFIG: /opt/pdc/conf/simulador.json
+      INGESTAO_CONFIG: /opt/pdc/conf/ingestao.json
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./conf:/opt/pdc/conf:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  erp-dados:
+  airflow-metadados:

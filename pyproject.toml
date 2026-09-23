@@ -1,0 +1,28 @@
+# Configuração das ferramentas de qualidade do repositório (lint, testes e segurança).
+# Os pacotes Python instaláveis ficam em extrator/ e erp_simulado/, cada um com seu pyproject.
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [".databricks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pdc_lib", "pdc_extrator", "pdc_erp"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks Databricks usam objetos injetados pela plataforma (spark, dbutils, display)
+# e fazem imports em células posteriores.
+"*.ipynb" = ["F821", "E402", "I001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["integration: testes que exigem um PostgreSQL acessível (variáveis PG_*)"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".databricks"]
+# B311: o módulo random é usado apenas para gerar dados fictícios no simulador, sem finalidade criptográfica.
+skips = ["B311"]

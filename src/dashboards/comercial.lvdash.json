@@ -1,0 +1,316 @@
+{
+  "datasets": [
+    {
+      "name": "ds_fato",
+      "displayName": "Pedidos de venda",
+      "queryLines": [
+        "SELECT f.dat_emissao, f.des_status, f.vlr_total, f.vlr_saldo, f.qtd_vendida, u.des_unidade,\n",
+        "       p.des_produto, v.des_nome AS des_vendedor, c.des_nome AS des_cliente\n",
+        "FROM comercial.fato_pedido_venda f\n",
+        "JOIN comercial.dim_unidade u ON f.cod_empresa = u.cod_empresa AND f.cod_filial = u.cod_filial\n",
+        "LEFT JOIN comercial.dim_produto p ON f.cod_empresa = p.cod_empresa AND f.cod_produto = p.cod_produto\n",
+        "LEFT JOIN comercial.dim_vendedor v ON f.cod_empresa = v.cod_empresa AND f.cod_vendedor = v.cod_vendedor\n",
+        "LEFT JOIN comercial.dim_cliente c ON f.cod_empresa = c.cod_empresa AND f.cod_cliente = c.cod_cliente\n",
+        "     AND f.cod_loja = c.cod_loja\n"
+      ]
+    },
+    {
+      "name": "ds_atualizacao",
+      "displayName": "Última atualização",
+      "queryLines": [
+        "SELECT date_format(MAX(dat_atualizacao), 'dd/MM/yyyy HH:mm') AS des_ultima_carga\n",
+        "FROM comercial.fato_pedido_venda\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "pagina_comercial",
+      "displayName": "Visão Comercial",
+      "layout": [
+        {
+          "widget": {
+            "name": "w_valor_vendido",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_fato",
+                  "fields": [
+                    {
+                      "name": "sum(vlr_total)",
+                      "expression": "SUM(`vlr_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(vlr_total)",
+                  "displayName": "Valor vendido (R$)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Valor vendido (R$)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w_carteira",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_fato",
+                  "fields": [
+                    {
+                      "name": "sum(vlr_saldo)",
+                      "expression": "SUM(`vlr_saldo`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(vlr_saldo)",
+                  "displayName": "Carteira em aberto (R$)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Carteira em aberto (R$)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w_ultima_carga",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_atualizacao",
+                  "fields": [
+                    {
+                      "name": "des_ultima_carga",
+                      "expression": "`des_ultima_carga`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "des_ultima_carga",
+                  "displayName": "Última atualização (UTC)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Última atualização (UTC)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "w_vendas_mes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_fato",
+                  "fields": [
+                    {
+                      "name": "monthly(dat_emissao)",
+                      "expression": "DATE_TRUNC(\"MONTH\", `dat_emissao`)"
+                    },
+                    {
+                      "name": "sum(vlr_total)",
+                      "expression": "SUM(`vlr_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "monthly(dat_emissao)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Mês"
+                },
+                "y": {
+                  "fieldName": "sum(vlr_total)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Valor vendido (R$)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Vendas por mês"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "w_vendas_unidade",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_fato",
+                  "fields": [
+                    {
+                      "name": "des_unidade",
+                      "expression": "`des_unidade`"
+                    },
+                    {
+                      "name": "sum(vlr_total)",
+                      "expression": "SUM(`vlr_total`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "des_unidade",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Unidade"
+                },
+                "y": {
+                  "fieldName": "sum(vlr_total)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Valor vendido (R$)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Vendas por unidade"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "w_carteira_vendedor",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_fato",
+                  "fields": [
+                    {
+                      "name": "des_vendedor",
+                      "expression": "`des_vendedor`"
+                    },
+                    {
+                      "name": "sum(vlr_saldo)",
+                      "expression": "SUM(`vlr_saldo`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "des_vendedor",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Vendedor"
+                },
+                "y": {
+                  "fieldName": "sum(vlr_saldo)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Carteira (R$)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Carteira por vendedor"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 8,
+            "width": 3,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ]
+}

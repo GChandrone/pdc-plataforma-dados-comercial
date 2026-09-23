@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualidade:
+    name: Lint, isolamento e SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Análise estática (ruff)
+        run: ruff check .
+      - name: Verificação de isolamento de catálogos e da landing
+        run: python .github/scripts/verificar_isolamento.py
+      - name: SAST (Bandit)
+        run: bandit -c pyproject.toml -r extrator erp_simulado src/pdc_lib
+
+  testes:
+    name: Testes unitários e de integração
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp_teste
+          POSTGRES_PASSWORD: erp_teste
+          POSTGRES_DB: erp_protheus_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp_teste"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PG_HOST: localhost
+      PG_PORT: "5432"
+      PG_DB: erp_protheus_teste
+      PG_USER: erp_teste
+      PG_PASSWORD: erp_teste
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Testes unitários
+        run: pytest tests/unit -q
+      - name: Testes de integração (PostgreSQL + extrator)
+        run: pytest tests/integration -q -m integration
+
+  segredos:
+    name: Varredura de segredos (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  airflow:
+    name: Build da imagem do Airflow e importação das DAGs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Criar .env de CI a partir do modelo (sem segredos reais)
+        run: cp .env.example .env
+      - name: Build da imagem
+        run: docker compose build airflow
+      - name: Teste de importação das DAGs
+        run: >-
+          docker compose run --rm --no-deps --entrypoint python airflow -c
+          "from airflow.models.dagbag import DagBag;
+          b = DagBag('/opt/airflow/dags', include_examples=False);
+          assert not b.import_errors, b.import_errors;
+          print(sorted(b.dag_ids))"
+
+  bundle:
+    name: Validação do Asset Bundle
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t dev
+      - run: databricks bundle validate -t prd

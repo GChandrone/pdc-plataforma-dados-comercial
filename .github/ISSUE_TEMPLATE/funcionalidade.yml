@@ -1,0 +1,27 @@
+name: Funcionalidade
+description: Nova funcionalidade ou evolução do pipeline
+labels: ["feat"]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: O que deve ser feito e qual o valor para o negócio.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
+  - type: dropdown
+    id: impacto_gold
+    attributes:
+      label: Impacto no modelo Gold
+      options:
+        - Nenhum
+        - Compatível (MINOR)
+        - Incompatível (MAJOR — aciona o CCM)
+    validations:
+      required: true

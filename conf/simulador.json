@@ -1,0 +1,22 @@
+{
+  "semente": null,
+  "unidades": [
+    {"empresa": "01", "filial": "01", "nome": "Matriz", "pedidos_por_dia": 8},
+    {"empresa": "05", "filial": "01", "nome": "Acessórios", "pedidos_por_dia": 5},
+    {"empresa": "08", "filial": "01", "nome": "Nordeste", "pedidos_por_dia": 4},
+    {"empresa": "08", "filial": "02", "nome": "Centro-Oeste", "pedidos_por_dia": 3},
+    {"empresa": "13", "filial": "01", "nome": "TopMax", "pedidos_por_dia": 4}
+  ],
+  "itens_por_pedido": {"min": 1, "max": 5},
+  "pct_alteracao": 0.10,
+  "pct_faturamento": 0.25,
+  "pct_exclusao": 0.03,
+  "pct_novo_cliente": 0.20,
+  "pct_alteracao_cadastro": 0.10,
+  "carga_inicial": {
+    "clientes_por_empresa": 60,
+    "vendedores_por_empresa": 8,
+    "produtos_por_empresa": 28,
+    "dias_historico": 365
+  }
+}

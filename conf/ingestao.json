@@ -1,0 +1,10 @@
+{
+  "sistema": "PROTHEUS",
+  "tabelas": [
+    {"tabela": "sc5", "tipo_carga": "INCREMENTAL", "ativo": true, "empresas": ["01", "05", "08", "13"]},
+    {"tabela": "sc6", "tipo_carga": "INCREMENTAL", "ativo": true, "empresas": ["01", "05", "08", "13"]},
+    {"tabela": "sa1", "tipo_carga": "FULL", "ativo": true, "empresas": ["01", "05", "08", "13"]},
+    {"tabela": "sa3", "tipo_carga": "FULL", "ativo": true, "empresas": ["01", "05", "08", "13"]},
+    {"tabela": "sb1", "tipo_carga": "FULL", "ativo": true, "empresas": ["01", "05", "08", "13"]}
+  ]
+}

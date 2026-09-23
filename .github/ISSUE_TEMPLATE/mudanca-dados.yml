@@ -1,0 +1,22 @@
+name: Mudança de dados
+description: Reprocessamento, RESTORE, alteração de regra de negócio ou de estrutura de tabela
+labels: ["dados"]
+body:
+  - type: textarea
+    id: mudanca
+    attributes:
+      label: Mudança solicitada
+    validations:
+      required: true
+  - type: textarea
+    id: justificativa
+    attributes:
+      label: Justificativa e impacto
+    validations:
+      required: true
+  - type: checkboxes
+    id: ccm
+    attributes:
+      label: Critérios do CCM
+      options:
+        - label: Mudança incompatível no Gold, reprocessamento completo, RESTORE ou remoção em Produção (adicionar a label ccm)

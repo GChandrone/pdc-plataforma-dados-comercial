@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdc-extrator"
+version = "0.1.0"
+description = "Extrator incremental do ERP simulado (PostgreSQL) para a landing do Databricks em Parquet"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg[binary]==3.2.3",
+    "pyarrow==17.0.0",
+    "databricks-sdk==0.36.0",
+]
+
+[project.scripts]
+pdc-extrator = "pdc_extrator.cli:main"
+
+[tool.setuptools]
+packages = ["pdc_extrator"]

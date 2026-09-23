@@ -1,0 +1,58 @@
+resources:
+  jobs:
+    job_comercial_diario:
+      name: job_comercial_diario
+      description: Carga diária do domínio Comercial (Bronze, Silver, Gold e gates de qualidade). Acionado pelo Airflow.
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+      parameters:
+        - name: catalogo_bronze
+          default: ${var.catalogo_bronze}
+        - name: catalogo_silver
+          default: ${var.catalogo_silver}
+        - name: catalogo_gold
+          default: ${var.catalogo_gold}
+        - name: landing_path
+          default: ${var.landing_path}
+        - name: src_path
+          default: ${workspace.file_path}/src
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ../src/ingestao/bronze_copy_into.ipynb
+
+        # Até 5 tarefas simultâneas (limite da Free Edition).
+        - task_key: silver_sc5
+          depends_on: [{task_key: bronze}]
+          notebook_task: {notebook_path: ../src/silver/silver_sc5.ipynb}
+        - task_key: silver_sc6
+          depends_on: [{task_key: bronze}]
+          notebook_task: {notebook_path: ../src/silver/silver_sc6.ipynb}
+        - task_key: silver_sa1
+          depends_on: [{task_key: bronze}]
+          notebook_task: {notebook_path: ../src/silver/silver_sa1.ipynb}
+        - task_key: silver_sa3
+          depends_on: [{task_key: bronze}]
+          notebook_task: {notebook_path: ../src/silver/silver_sa3.ipynb}
+        - task_key: silver_sb1
+          depends_on: [{task_key: bronze}]
+          notebook_task: {notebook_path: ../src/silver/silver_sb1.ipynb}
+
+        - task_key: gold_dimensoes
+          depends_on:
+            - {task_key: silver_sa1}
+            - {task_key: silver_sa3}
+            - {task_key: silver_sb1}
+          notebook_task: {notebook_path: ../src/gold/gold_dimensoes.ipynb}
+        - task_key: gold_fato_pedido_venda
+          depends_on:
+            - {task_key: silver_sc5}
+            - {task_key: silver_sc6}
+            - {task_key: gold_dimensoes}
+          notebook_task: {notebook_path: ../src/gold/gold_fato_pedido_venda.ipynb}
+
+        - task_key: qualidade_dados
+          depends_on: [{task_key: gold_fato_pedido_venda}]
+          notebook_task: {notebook_path: ../src/qualidade/qualidade_dados.ipynb}

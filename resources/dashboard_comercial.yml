@@ -1,0 +1,9 @@
+resources:
+  dashboards:
+    dashboard_comercial:
+      display_name: "PDC — Comercial: Vendas e Carteira"
+      file_path: ../src/dashboards/comercial.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      # As consultas do dashboard usam <schema>.<tabela>; o catálogo é definido por ambiente.
+      dataset_catalog: ${var.catalogo_gold}
+      dataset_schema: comercial

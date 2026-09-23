@@ -1,0 +1,19 @@
+resources:
+  jobs:
+    job_setup:
+      name: job_setup
+      description: Setup idempotente de catálogos, schemas e volume de landing (executado pelo CD).
+      max_concurrent_runs: 1
+      parameters:
+        - name: catalogo_bronze
+          default: ${var.catalogo_bronze}
+        - name: catalogo_silver
+          default: ${var.catalogo_silver}
+        - name: catalogo_gold
+          default: ${var.catalogo_gold}
+        - name: setup_sql_path
+          default: ${workspace.file_path}/setup/setup.sql
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../setup/executar_setup.ipynb

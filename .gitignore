@@ -1,0 +1,27 @@
+# Segredos e configuração local
+.env
+.databrickscfg
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Databricks Asset Bundles
+.databricks/
+
+# Saídas locais do extrator
+landing_local/
+*.parquet
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
