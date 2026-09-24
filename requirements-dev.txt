@@ -3,6 +3,6 @@
 -e ./erp_simulado
 pytest==8.3.3
 pyspark==3.5.3
-ruff==0.6.9
+ruff==0.16.8
 bandit[toml]==1.7.10
 pre-commit==3.8.0
