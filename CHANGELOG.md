@@ -9,3 +9,4 @@ O projeto segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/), ap
 
 ### Adicionado
 - Estrutura inicial do repositório conforme o Plano de Gerenciamento de Configuração (PGC).
+- Teste do fluxo de CI/CD
