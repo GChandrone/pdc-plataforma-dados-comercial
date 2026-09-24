@@ -11,6 +11,8 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pdc_lib", "pdc_extrator", "pdc_erp"]
+# A pasta airflow/ do repositório faz o ruff tratar "airflow" como módulo local; o pacote é de terceiros.
+known-third-party = ["airflow"]
 
 [tool.ruff.lint.per-file-ignores]
 # Notebooks Databricks usam objetos injetados pela plataforma (spark, dbutils, display)
