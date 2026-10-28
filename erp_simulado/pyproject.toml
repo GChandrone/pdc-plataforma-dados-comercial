@@ -7,7 +7,7 @@ name = "pdc-erp"
 version = "0.1.0"
 description = "ERP Protheus simulado do projeto PDC: carga inicial e simulador de movimentação diária"
 requires-python = ">=3.11"
-dependencies = ["psycopg[binary]==3.2.3"]
+dependencies = ["psycopg[binary]==3.3.6"]
 
 [project.scripts]
 pdc-erp = "pdc_erp.cli:main"
