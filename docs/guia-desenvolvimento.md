@@ -15,7 +15,7 @@ flowchart LR
     I["📝 0. Issue"] --> B["🌿 1. Branch"] --> D["💻 2-4. Desenvolver<br/>e testar"] --> P["🔀 5-6. Pull Request"]
     P --> CI{"🤖 7. CI<br/>5 checks"}
     CI -- "❌" --> D
-    CI -- "✅" --> M["8. Merge automático"] --> S["🧪 Deploy em staging"]
+    CI -- "✅" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> M["8. Merge automático"] --> S["🧪 Deploy em staging"]
     S --> T["🏷️ 10. Tag vX.Y.Z"] --> A{"👤 11. Aprovação"} --> PR["🌐 Deploy em production"] --> R["📦 12. Release"]
 ```
 
@@ -153,8 +153,15 @@ gh pr create --fill --body "Closes #15"
 gh pr merge --auto --squash
 ```
 
-Preencha o checklist do template do PR. A revisão pelo colega é recomendada e **obrigatória** quando a
-mudança aciona o CCM.
+Preencha o checklist do template do PR. O **título do PR** deve seguir o padrão Conventional Commits, porque
+ele vira a mensagem do commit na `main` (squash merge). Peça a revisão ao seu par:
+
+```bash
+gh pr edit --add-reviewer GabBruno
+```
+
+O merge exige **1 aprovação do par de revisão**: o GitHub não permite aprovar o próprio PR, e um novo commit
+descarta a aprovação anterior.
 
 ### Passo 7 — Acompanhar o CI
 
@@ -175,7 +182,7 @@ O CI roda de novo e o auto-merge continua ativo.
 
 ### Passo 8 — Merge e deploy em staging (automáticos)
 
-Com os 5 checks verdes, o GitHub faz o **squash merge**, apaga a branch e fecha a issue (por causa do
+Com os 5 checks verdes e a aprovação do par, o GitHub faz o **squash merge**, apaga a branch e fecha a issue (por causa do
 `Closes #15`). O CD faz o deploy em **staging** e executa o job com os gates de qualidade:
 
 ```bash
@@ -256,6 +263,7 @@ databricks bundle deploy -t dev && databricks bundle run -t dev job_comercial_di
 git add . && git commit -m "feat(gold): descrição"
 git push -u origin feature/15-descricao
 gh pr create --fill --body "Closes #15" && gh pr merge --auto --squash
+gh pr edit --add-reviewer GabBruno
 gh pr checks --watch
 
 # 9-13. Produção (após o merge)
@@ -292,7 +300,7 @@ git checkout v0.3.0 && docker compose up -d --build && git checkout main
 O Dependabot abre PRs agrupados com atualizações **MINOR** e **PATCH** de bibliotecas, Actions e imagem Docker.
 Eles passam pelo mesmo CI. Com os 5 checks verdes:
 
-1. Abra o PR e clique em *Squash and merge*.
+1. Peça a aprovação do par de revisão; depois clique em *Squash and merge*.
 2. Se houver mais de um PR, após o primeiro merge use *Update branch* (ou comente `@dependabot rebase`) nos demais.
 3. As atualizações chegam a Produção na próxima tag.
 
@@ -306,7 +314,8 @@ Versões **MAJOR** são ignoradas automaticamente e exigem avaliação manual (C
 |---|---|---|
 | Commit bloqueado pelo pre-commit | ruff, gitleaks ou notebook com outputs | Leia a mensagem, corrija e commite de novo (o ruff já aplica correções simples) |
 | Check "Lint, isolamento e SAST" vermelho | Lint, catálogo fixo ou alerta do Bandit | Rode `ruff check .` e `python .github/scripts/verificar_isolamento.py` localmente |
-| Botão de merge bloqueado com checks verdes | Branch desatualizada em relação à `main` | Clique em *Update branch* no PR |
+| Botão de merge bloqueado com checks verdes | Falta a aprovação do par ou a branch está desatualizada | Peça a revisão (`gh pr edit --add-reviewer GabBruno`) ou clique em *Update branch* |
+| Par não consegue aprovar o PR | Convite de colaborador não aceito | O par aceita o convite em github.com/notifications |
 | Deploy em production parado | Aguardando aprovação | *Actions › CD › Review deployments* |
 | Environment `dev` ou `prd` reaparece | Branch antiga com workflow antigo | Atualize ou feche a branch e exclua o environment |
 | Job falha nos gates de qualidade | Dado inconsistente na carga | Veja a mensagem do notebook `qualidade_dados` no Databricks e abra uma issue de correção |

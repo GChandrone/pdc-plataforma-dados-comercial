@@ -1,7 +1,24 @@
 name: Funcionalidade
-description: Nova funcionalidade ou evolução do pipeline
+description: Nova funcionalidade ou evolução da plataforma de dados
 labels: ["feat"]
 body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - ERP simulado (PostgreSQL / simulador)
+        - Extrator
+        - Orquestração (Airflow)
+        - Bronze
+        - Silver
+        - Gold (modelo dimensional)
+        - Qualidade de dados
+        - Dashboard
+        - CI/CD e infraestrutura
+        - Documentação
+    validations:
+      required: true
   - type: textarea
     id: descricao
     attributes:

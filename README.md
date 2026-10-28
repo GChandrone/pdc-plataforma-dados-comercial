@@ -167,7 +167,7 @@ A cada carga, o job **falha** se qualquer gate for reprovado — dado errado nã
 flowchart LR
     A["📝 Issue"] --> B["🌿 Branch"] --> C["🔀 Pull Request"] --> D{"🤖 CI<br/>5 checks"}
     D -- "❌ falhou" --> C
-    D -- "✅ passou" --> E["🔀 Merge na main"] --> F["🧪 Deploy em staging<br/>automático"]
+    D -- "✅ passou" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> E["🔀 Merge na main"] --> F["🧪 Deploy em staging<br/>automático"]
     F --> G["🏷️ Tag vX.Y.Z"] --> H{"👤 Aprovação"}
     H -- "✅ aprovado" --> I["🌐 Deploy em production"] --> J["📦 GitHub Release"]
 ```
@@ -209,8 +209,8 @@ flowchart LR
 | **Quando recebe deploy** | A cada merge na `main` | Tag `vX.Y.Z` aprovada |
 | **Origem dos dados** | Landing compartilhada | Landing compartilhada |
 
-> 🔒 A `main` é protegida: só aceita mudanças por Pull Request com os 5 checks verdes — nem administradores pulam
-> essa regra. Versões seguem o [SemVer](https://semver.org/lang/pt-BR/) aplicado ao modelo Gold e os commits seguem
+> 🔒 A `main` é protegida: só aceita mudanças por Pull Request com os 5 checks verdes e **1 aprovação do par de
+> revisão**, com histórico linear (somente squash merge) — nem administradores pulam essa regra. Versões seguem o [SemVer](https://semver.org/lang/pt-BR/) aplicado ao modelo Gold e os commits seguem
 > [Conventional Commits](https://www.conventionalcommits.org/pt-br/).
 
 ---
@@ -267,7 +267,7 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 
 1. Abrir uma issue (Funcionalidade, Correção ou Mudança de dados).
 2. Criar a branch `feature/<issue>-<descrição>` e commitar, por exemplo `feat(gold): inclui vlr_desconto`.
-3. Abrir o Pull Request com `Closes #<issue>` e aguardar os 5 checks.
+3. Abrir o Pull Request com `Closes #<issue>`, aguardar os 5 checks e a aprovação do par de revisão.
 4. Merge na `main` → deploy automático em **staging**.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z` → aprovar em **Actions › CD › Review deployments**.
 6. Atualizar o ambiente local: `git checkout vX.Y.Z && docker compose up -d --build`.

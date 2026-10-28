@@ -1,0 +1,49 @@
+name: Defeito
+description: Erro encontrado no pipeline, nos dados ou no dashboard
+labels: ["fix"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - ERP simulado (PostgreSQL / simulador)
+        - Extrator
+        - Orquestração (Airflow)
+        - Bronze
+        - Silver
+        - Gold (modelo dimensional)
+        - Qualidade de dados
+        - Dashboard
+        - CI/CD e infraestrutura
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema observado
+      description: O que aconteceu? Inclua mensagens de erro ou o link da execução que falhou.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Como reproduzir
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: dropdown
+    id: ambiente
+    attributes:
+      label: Ambiente
+      options:
+        - staging
+        - production
+        - Ambiente local
+    validations:
+      required: true

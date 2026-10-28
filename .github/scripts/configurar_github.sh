@@ -81,8 +81,10 @@ ls docs/pgc/* >/dev/null 2>&1 || { echo "Coloque o PGC (.docx e .pdf) em docs/pg
 
 # ---------------------------------------------------------------- 1. repositório
 etapa "1. Configurações gerais do repositório"
-gh repo edit "$REPO" --description "$DESCRICAO" --enable-auto-merge --delete-branch-on-merge >/dev/null
-ok "Descrição, auto-merge e exclusão automática de branches"
+gh repo edit "$REPO" --description "$DESCRICAO" --enable-auto-merge --delete-branch-on-merge \
+  --enable-squash-merge --enable-merge-commit=false --enable-rebase-merge=false >/dev/null
+gh api -X PATCH "repos/$REPO" -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY --silent
+ok "Descrição, auto-merge, somente squash merge (título e descrição do PR) e exclusão automática de branches"
 
 # ---------------------------------------------------------------- 2. environments
 etapa "2. Environments staging e production"
@@ -91,8 +93,10 @@ read -rs -p "    Token do Databricks (não aparece na tela): " DB_TOKEN; echo
 DB_HOST="${DB_HOST%/}"
 [[ "$DB_HOST" == https://* && -n "$DB_TOKEN" ]] || { echo "Host ou token inválido"; exit 1; }
 
-gh api -X PUT "repos/$REPO/environments/staging" --silent
-ok "staging criado (sem restrição de branch, usado pelo CI e pelo deploy em Desenvolvimento)"
+gh api -X PUT "repos/$REPO/environments/staging" --silent --input - <<JSON
+{"deployment_branch_policy": {"protected_branches": true, "custom_branch_policies": false}}
+JSON
+ok "staging criado, aceitando deploy somente de branches protegidas (main)"
 
 APROVADOR_ID="$(gh api "users/$APROVADOR" --jq .id 2>/dev/null)" \
   || { echo "Usuário aprovador '$APROVADOR' não encontrado no GitHub"; exit 1; }
@@ -134,6 +138,11 @@ for amb in staging production; do
   ok "Secrets DATABRICKS_HOST e DATABRICKS_TOKEN em $amb"
 done
 
+# Secrets do repositório: usados pela validação do bundle no CI (branches dos Pull Requests).
+printf '%s' "$DB_HOST"  | gh secret set DATABRICKS_HOST  --repo "$REPO"
+printf '%s' "$DB_TOKEN" | gh secret set DATABRICKS_TOKEN --repo "$REPO"
+ok "Secrets do repositório para a validação do bundle no CI"
+
 # ---------------------------------------------------------------- 3. dependabot
 etapa "3. Secrets do Dependabot"
 printf '%s' "$DB_HOST"  | gh secret set DATABRICKS_HOST  --app dependabot --repo "$REPO"
@@ -147,14 +156,15 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --silent --input - <<JSON
 {
   "required_status_checks": {"strict": true, "contexts": $CHECKS},
   "enforce_admins": true,
-  "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false},
+  "required_pull_request_reviews": {"required_approving_review_count": 1, "dismiss_stale_reviews": true},
+  "required_linear_history": true,
   "restrictions": null,
   "allow_force_pushes": false,
   "allow_deletions": false,
   "required_conversation_resolution": false
 }
 JSON
-ok "PR obrigatório, 5 checks obrigatórios e regra aplicada também a administradores"
+ok "PR com 1 aprovação, aprovações descartadas em novos commits, 5 checks, histórico linear e sem exceções"
 
 # ---------------------------------------------------------------- 5. par de revisão
 etapa "5. Par de revisão ($REVISOR)"

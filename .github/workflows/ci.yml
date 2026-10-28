@@ -96,7 +96,8 @@ jobs:
   bundle:
     name: Validação do Asset Bundle
     runs-on: ubuntu-latest
-    environment: staging
+    # Usa secrets do repositório: o Environment staging aceita somente branches protegidas
+    # (deploy a partir da main), e esta validação roda nas branches dos Pull Requests.
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}

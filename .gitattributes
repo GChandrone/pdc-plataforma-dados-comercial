@@ -1,0 +1,9 @@
+# Normaliza finais de linha para LF (evita quebrar scripts .sh e YAML no Windows)
+* text=auto eol=lf
+
+# Arquivos binários: nunca converter
+*.png  binary
+*.jpg  binary
+*.pdf  binary
+*.docx binary
+*.parquet binary

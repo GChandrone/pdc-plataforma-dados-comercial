@@ -18,4 +18,5 @@ Closes #
 - [ ] Nenhum catálogo citado de forma fixa no código (sempre por parâmetro)
 - [ ] Nenhum dado real, token ou senha no código, nos notebooks ou nos commits
 - [ ] Notebooks salvos sem outputs
-- [ ] Revisão pelo outro engenheiro (obrigatória se a mudança aciona o CCM)
+- [ ] Título do PR no padrão Conventional Commits (vira a mensagem do commit na `main`)
+- [ ] Aprovação do par de revisão (obrigatória para o merge)

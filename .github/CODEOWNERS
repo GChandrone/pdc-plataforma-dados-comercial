@@ -1,1 +1,9 @@
-* @<GChandrone>
+# Dono de todo o repositório: revisão do responsável pelo projeto.
+*                   @GChandrone
+
+# Áreas sensíveis: pipeline de CI/CD, infraestrutura e modelo Gold.
+/.github/           @GChandrone
+/databricks.yml     @GChandrone
+/resources/         @GChandrone
+/src/gold/          @GChandrone
+/docs/pgc/          @GChandrone
