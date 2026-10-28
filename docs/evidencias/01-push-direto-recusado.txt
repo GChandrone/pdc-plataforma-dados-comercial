@@ -1,0 +1,12 @@
+# Evidência: push direto na main recusado
+# Data (UTC): 2026-10-28 01:49:13
+# Comando: git push origin <commit>:refs/heads/main
+
+remote: error: GH006: Protected branch update failed for refs/heads/main.        
+remote: 
+remote: - Changes must be made through a pull request.        
+remote: 
+remote: - 5 of 5 required status checks are expected.        
+To https://github.com/GChandrone/pdc-plataforma-dados-comercial.git
+ ! [remote rejected] 31aa40e00ce7a72370c9e0e3c1be5cd85fb2d3f5 -> main (protected branch hook declined)
+error: failed to push some refs to 'https://github.com/GChandrone/pdc-plataforma-dados-comercial.git'
