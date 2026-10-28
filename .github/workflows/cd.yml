@@ -17,7 +17,8 @@ jobs:
     name: Deploy em Desenvolvimento
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: dev
+    # Environment staging do GitHub -> target dev do Asset Bundle
+    environment: staging
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
@@ -35,8 +36,9 @@ jobs:
     name: Deploy em Produção
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # O Environment prd exige aprovação manual (required reviewers) antes de liberar os secrets.
-    environment: prd
+    # Environment production do GitHub -> target prd do Asset Bundle.
+    # Exige aprovação manual (required reviewers) antes de liberar os secrets.
+    environment: production
     permissions:
       contents: write
     env:
