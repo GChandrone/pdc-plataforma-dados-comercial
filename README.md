@@ -272,6 +272,8 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 5. `git tag vX.Y.Z && git push origin vX.Y.Z` → aprovar em **Actions › CD › Review deployments**.
 6. Atualizar o ambiente local: `git checkout vX.Y.Z && docker compose up -d --build`.
 
+📖 Guia completo, com todos os comandos: [`docs/guia-desenvolvimento.md`](docs/guia-desenvolvimento.md)
+
 </details>
 
 ---
@@ -301,6 +303,7 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 | Documento | Descrição |
 |---|---|
 | 📘 [Plano de Gerenciamento de Configuração](docs/pgc/) | O PGC do projeto — item de configuração versionado |
+| 🛠️ [Guia de desenvolvimento](docs/guia-desenvolvimento.md) | Passo a passo com os comandos, da issue até Produção |
 | 🧭 [ADRs](docs/adr/) | Decisões de arquitetura e suas justificativas |
 | 📖 [Dicionário de dados](docs/dicionario-dados.md) | Tabelas e colunas da camada Gold |
 | 🧾 [Evidências](docs/evidencias/) | Proteção da `main`, environments e push direto recusado |
