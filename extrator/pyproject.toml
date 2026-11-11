@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "Extrator incremental do ERP simulado (PostgreSQL) para a landing do Databricks em Parquet"
 requires-python = ">=3.11"
 dependencies = [
-    "psycopg[binary]==3.3.6",
+    "psycopg[binary]==3.3.8",
     "pyarrow==17.0.0",
-    "databricks-sdk==0.157.0",
+    "databricks-sdk==0.162.0",
 ]
 
 [project.scripts]
