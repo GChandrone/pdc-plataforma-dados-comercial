@@ -1,7 +1,7 @@
 # Dependências de desenvolvimento, teste e CI (versões fixadas; atualizadas via Dependabot).
 -e ./extrator
 -e ./erp_simulado
-pytest==8.4.2
+pytest==9.0.3
 pytest-cov==6.0.0
 pyspark==3.5.9
 ruff==0.17.2
