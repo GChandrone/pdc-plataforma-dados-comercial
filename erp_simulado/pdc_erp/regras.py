@@ -20,7 +20,11 @@ def tabela(alias: str, empresa: str) -> str:
 
 
 def valor_item(quantidade: Decimal, preco: Decimal) -> Decimal:
-    """C6_VALOR = quantidade × preço, arredondado em centavos."""
+    """C6_VALOR = quantidade × preço, arredondado em centavos. Recusa quantidade ou preço negativo."""
+    if quantidade < 0:
+        raise ValueError(f"Quantidade negativa não é permitida: {quantidade}")
+    if preco < 0:
+        raise ValueError(f"Preço negativo não é permitido: {preco}")
     return (quantidade * preco).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
 
 

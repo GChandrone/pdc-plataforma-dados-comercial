@@ -23,6 +23,17 @@ def test_valor_item_e_codigos():
     assert proximo_codigo("000099") == "000100"
 
 
+@pytest.mark.parametrize(("quantidade", "preco"), [(Decimal("-1"), Decimal("10.00")), (Decimal("2"), Decimal("-0.01"))])
+def test_valor_item_recusa_quantidade_ou_preco_negativo(quantidade, preco):
+    with pytest.raises(ValueError, match="negativ"):
+        valor_item(quantidade, preco)
+
+
+def test_valor_item_aceita_zero():
+    assert valor_item(Decimal("0"), Decimal("10.00")) == Decimal("0.00")
+    assert valor_item(Decimal("5"), Decimal("0")) == Decimal("0.00")
+
+
 def test_tabela_protheus():
     assert tabela("sc5", "08") == "sc5080"
     with pytest.raises(ValueError):
