@@ -52,6 +52,12 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+      # PySpark 3.5 suporta Java até a versão 17; o Java padrão do runner é mais novo
+      # e falha ao iniciar o Spark ("getSubject is not supported").
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Instalar dependências (versões fixas)
         run: pip install -r requirements-dev.txt
       - name: Lint
