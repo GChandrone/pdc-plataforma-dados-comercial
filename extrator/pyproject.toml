@@ -9,7 +9,7 @@ description = "Extrator incremental do ERP simulado (PostgreSQL) para a landing 
 requires-python = ">=3.11"
 dependencies = [
     "psycopg[binary]==3.3.6",
-    "pyarrow==17.0.0",
+    "pyarrow==23.0.1",
     "databricks-sdk==0.157.0",
 ]
 
