@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Use este formulário apenas para mudanças que se enquadram no PGC 8.2.
-        O CCM (Gabriel, responsável pelo projeto, e GabBruno, par de revisão) registra a decisão nos comentários.
+        O CCM (Gabriel da Cunha, responsável pelo projeto, e Gabriel Bruno, par de revisão) registra a decisão nos comentários.
   - type: checkboxes
     id: criterio
     attributes:

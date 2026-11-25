@@ -7,6 +7,11 @@ def test_duplicidades_e_nulos(spark):
     assert contar_nulos(df, ["cod_empresa", "num_recno"]) == 1
 
 
+def test_nulos_sem_colunas_devolve_zero(spark):
+    df = spark.createDataFrame([("08", None)], "cod_empresa string, num_recno long")
+    assert contar_nulos(df, []) == 0
+
+
 def test_orfaos(spark):
     fato = spark.createDataFrame([("08", "000001"), ("08", "000099")], "cod_empresa string, cod_produto string")
     dim = spark.createDataFrame([("08", "000001")], "cod_empresa string, cod_produto string")

@@ -8,7 +8,8 @@
 | Execução do CD em que a produção foi aprovada | [run 45522060498](https://github.com/GChandrone/pdc-plataforma-dados-comercial/actions/runs/45522060498) |
 | Release **v1.0.1** (`fix`) | ⏳ |
 | Release **v1.1.0** (`feat`) | ⏳ |
-| PR `docs: ...` que não dispara o CD | ⏳ |
+| PR `docs: ...` que não dispara o CD | [#36 — `docs: organiza evidências do PGC por aula`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/36): merge [`eddfd8a`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/commit/eddfd8a) sem nenhuma execução do CD ([histórico do CD](https://github.com/GChandrone/pdc-plataforma-dados-comercial/actions/workflows/cd.yml)) |
+| PR `test: ...` que não gera versão | [#34](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/34): CD [run 45527762331](https://github.com/GChandrone/pdc-plataforma-dados-comercial/actions/runs/45527762331) com `release=false`; staging atualizado e Produção pulada |
 | Execução do Rollback | ⏳ |
 | PR `revert: ...` | ⏳ |
 
