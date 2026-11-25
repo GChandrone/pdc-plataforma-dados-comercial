@@ -7,7 +7,7 @@
 | PR que adicionou o CI (mesclado por squash) | [#29 — `ci!: adota CI/CD do PGC com versão automática`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/29) |
 | Execução do CI verde no PR #29 (`ci-ok`) | [run 45520430846](https://github.com/GChandrone/pdc-plataforma-dados-comercial/actions/runs/45520430846) |
 | Execução do `titulo-pr` verde no PR #29 | [run 45520430871](https://github.com/GChandrone/pdc-plataforma-dados-comercial/actions/runs/45520430871) |
-| PR de teste em que as falhas foram provocadas | [#34 — `test(lib): cobre validações de identificadores do pdc_lib.util`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/34) |
+| PR de teste em que as falhas foram provocadas (revisado, comentado e mesclado) | [#34 — `test(lib): cobre validações de identificadores do pdc_lib.util`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/34) |
 | Revisão feita no repositório do par | ⏳ link do PR revisado por GChandrone no repositório do GabBruno |
 
 ## Três falhas provocadas e corrigidas (PR #34)
@@ -27,7 +27,7 @@
 | `ci-ok` e `titulo-pr` obrigatórios na proteção da `main` | ✅ `checks-obrigatorios-main.jpg` |
 | Pelo menos 1 teste; limite de 60% configurado | ✅ `--cov-fail-under=60`; cobertura de **70,8%** no PR #29 |
 | Três falhas provocadas e corrigidas, com links | ✅ tabela acima |
-| PR revisado pelo par, com comentário respondido, e mesclado por squash | ⏳ PR #29 aprovado por GabBruno e mesclado por squash, **sem comentário em linha**; o comentário respondido será registrado no PR #34 |
+| PR revisado pelo par, com comentário respondido, e mesclado por squash | ✅ PR #34: [comentário do GabBruno](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/34#discussion_r4689029173) em `tests/unit/test_util.py` (linha 13), [resposta de GChandrone](https://github.com/GChandrone/pdc-plataforma-dados-comercial/pull/34#discussion_r4689041133), aprovação de GabBruno e squash merge ([`d441dda`](https://github.com/GChandrone/pdc-plataforma-dados-comercial/commit/d441dda)). O PR #29 foi aprovado sem comentário em linha (falha de processo corrigida no #34) |
 | Revisão feita no repositório do par | ⏳ |
 
 ## Prints
