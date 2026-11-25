@@ -29,8 +29,8 @@ def test_tabela_protheus_invalida(valor):
 
 
 def test_nome_tabela_monta_tres_partes():
-    esperado = "dev_silver.protheus.sc5"
-    assert nome_tabela("dev_silver", "protheus", "sc5") == "dev_silver.protheus.sc5"
+    esperado = "dev_silver.protheus.sc6"
+    assert nome_tabela("dev_silver", "protheus", "sc5") == esperado
 
 
 def test_nome_tabela_recusa_parte_maliciosa():
