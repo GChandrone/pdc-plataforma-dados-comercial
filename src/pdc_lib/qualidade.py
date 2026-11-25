@@ -13,6 +13,8 @@ def contar_duplicidades(df: DataFrame, chaves: list[str]) -> int:
 
 
 def contar_nulos(df: DataFrame, colunas: list[str]) -> int:
+    if not colunas:
+        return 0
     condicao = reduce(lambda a, b: a | b, [F.col(c).isNull() for c in colunas])
     return df.filter(condicao).count()
 
