@@ -1,3 +1,12 @@
+# Integração Contínua — PGC seção 5 (Aula 2)
+#
+# Roda em todo Pull Request para a main. Cada job verifica uma parte do projeto e o
+# job "ci-ok" consolida o resultado de todos.
+#
+# Na proteção da main, marque como obrigatórios SOMENTE:  ci-ok  e  titulo-pr
+# (ADR 0004). Se um job individual fosse obrigatório e não rodasse, o PR ficaria
+# travado em "Expected — Waiting for status".
+
 name: CI
 
 on:
@@ -5,34 +14,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   qualidade:
-    name: Lint, isolamento e SAST
+    name: Lint, testes e cobertura
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.11"
-          cache: pip
-      - run: pip install -r requirements-dev.txt
-      - name: Análise estática (ruff)
-        run: ruff check .
-      - name: Verificação de isolamento de catálogos e da landing
-        run: python .github/scripts/verificar_isolamento.py
-      - name: SAST (Bandit)
-        run: bandit -c pyproject.toml -r extrator erp_simulado src/pdc_lib
-
-  testes:
-    name: Testes unitários e de integração
-    runs-on: ubuntu-latest
+    # PostgreSQL real para os testes de integração do extrator e do ERP simulado.
     services:
       postgres:
         image: postgres:16
@@ -59,11 +52,37 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install -r requirements-dev.txt
-      - name: Testes unitários
-        run: pytest tests/unit -q
-      - name: Testes de integração (PostgreSQL + extrator)
-        run: pytest tests/integration -q -m integration
+      # PySpark 3.5 suporta Java até a versão 17; o Java padrão do runner é mais novo
+      # e falha ao iniciar o Spark ("getSubject is not supported").
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Instalar dependências (versões fixas)
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Verificação de isolamento de catálogos e da landing
+        run: python .github/scripts/verificar_isolamento.py
+      - name: SAST (Bandit)
+        run: bandit -c pyproject.toml -r extrator erp_simulado src/pdc_lib
+      - name: Testes + quality gate de cobertura >= 60% (PGC 5.3)
+        # Unitários (PySpark local) e integração (PostgreSQL) medidos juntos.
+        run: >-
+          python -m pytest tests
+          --cov=pdc_lib --cov=pdc_extrator --cov=pdc_erp
+          --cov-report=term-missing --cov-fail-under=60
+
+  dependencias:
+    name: Análise de dependências (SCA)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Bloqueia dependências novas com vulnerabilidade crítica (ADR 0005).
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: critical
 
   segredos:
     name: Varredura de segredos (gitleaks)
@@ -77,7 +96,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   airflow:
-    name: Build da imagem do Airflow e importação das DAGs
+    name: Build do Airflow e importação das DAGs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -96,13 +115,37 @@ jobs:
   bundle:
     name: Validação do Asset Bundle
     runs-on: ubuntu-latest
-    # Usa secrets do repositório: o Environment staging aceita somente branches protegidas
-    # (deploy a partir da main), e esta validação roda nas branches dos Pull Requests.
+    # Secrets do repositório. PRs do Dependabot não recebem secrets: nesse caso a
+    # validação é pulada com aviso, e o bundle é validado de novo no CD.
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: databricks/setup-cli@main
-      - run: databricks bundle validate -t dev
-      - run: databricks bundle validate -t prd
+      - name: Validar targets dev e prd
+        run: |
+          if [ -z "$DATABRICKS_TOKEN" ]; then
+            echo "::warning::Secrets do Databricks indisponíveis (ex.: PR do Dependabot); validação pulada."
+            exit 0
+          fi
+          databricks bundle validate -t dev
+          databricks bundle validate -t prd
+
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [qualidade, dependencias, segredos, airflow, bundle]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir resultado dos jobs
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTADOS"
+          for r in $RESULTADOS; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::Algum job do CI falhou — merge bloqueado (PGC 5.2)."
+              exit 1
+            fi
+          done

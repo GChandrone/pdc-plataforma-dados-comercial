@@ -1,9 +1,14 @@
-# Dono de todo o repositório: revisão do responsável pelo projeto.
-*                   @GChandrone
+# Revisores automáticos por área (PGC 2 e 5.2).
+#
+# @GabBruno é o par de revisão: é chamado em todo PR.
+# Mudanças em pipelines, scripts, infraestrutura do Databricks e modelo Gold são de maior
+# risco: o responsável pelo projeto (@GChandrone) também é chamado.
+# Vale a ÚLTIMA linha que casar com o arquivo.
 
-# Áreas sensíveis: pipeline de CI/CD, infraestrutura e modelo Gold.
-/.github/           @GChandrone
-/databricks.yml     @GChandrone
-/resources/         @GChandrone
-/src/gold/          @GChandrone
-/docs/pgc/          @GChandrone
+*                   @GabBruno
+/.github/           @GChandrone @GabBruno
+/scripts/           @GChandrone @GabBruno
+/databricks.yml     @GChandrone @GabBruno
+/resources/         @GChandrone @GabBruno
+/src/gold/          @GChandrone @GabBruno
+/docs/pgc/          @GChandrone @GabBruno

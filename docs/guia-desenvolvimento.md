@@ -13,15 +13,15 @@ seguindo o processo de controle de mudanças do [Plano de Gerenciamento de Confi
 ```mermaid
 flowchart LR
     I["📝 0. Issue"] --> B["🌿 1. Branch"] --> D["💻 2-4. Desenvolver<br/>e testar"] --> P["🔀 5-6. Pull Request"]
-    P --> CI{"🤖 7. CI<br/>5 checks"}
+    P --> CI{"🤖 7. ci-ok<br/>+ titulo-pr"}
     CI -- "❌" --> D
-    CI -- "✅" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> M["8. Merge automático"] --> S["🧪 Deploy em staging"]
-    S --> T["🏷️ 10. Tag vX.Y.Z"] --> A{"👤 11. Aprovação"} --> PR["🌐 Deploy em production"] --> R["📦 12. Release"]
+    CI -- "✅" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> M["8. Squash merge"] --> V["🔢 Versão pelo título"]
+    V --> S["🧪 Staging"] --> A{"👤 9. Aprovação"} --> PR["🌐 Production"] --> R["📦 10. Tag + Release"]
 ```
 
 | Etapa | Onde acontece |
 |---|---|
-| Issue, branch, PR, CI, merge, tag, aprovação e Release | GitHub |
+| Issue, branch, PR, CI, merge, versão, aprovação, tag e Release | GitHub |
 | Escrever o código e rodar os testes locais | VS Code (máquina local) |
 | Executar o pipeline e conferir tabelas, jobs e dashboard | Databricks |
 | PostgreSQL do ERP simulado, extrator e Airflow | Docker (máquina local) |
@@ -49,15 +49,15 @@ flowchart LR
 
 Toda mudança começa com uma issue, que registra **o que** será feito e **por quê**.
 
-- **Pelo navegador:** *Issues › New issue* e escolha o template: Funcionalidade, Correção ou Mudança de dados.
+- **Pelo navegador:** *Issues › New issue* e escolha o template: Funcionalidade, Defeito ou Mudança de alto risco (CCM).
 - **Pelo terminal:**
   ```bash
   gh issue create --title "Incluir vlr_desconto na fato_pedido_venda" --label feat
   ```
 
 Anote o número da issue (nos exemplos abaixo, **#15**). Se a mudança se encaixar nos critérios do CCM
-(mudança incompatível na Gold, alteração de regra de negócio, RESTORE ou reprocessamento em Produção),
-adicione também a label `ccm`.
+(mudança incompatível na Gold, regra de negócio de indicador, RESTORE ou reprocessamento em Produção, LGPD
+ou hotfix), use o formulário **Mudança de alto risco (CCM)** e aguarde a decisão registrada antes de implementar.
 
 ### Passo 1 — Criar a branch ligada à issue
 
@@ -171,76 +171,71 @@ gh pr checks --watch
 
 | Check | O que verifica |
 |---|---|
-| Lint, isolamento e SAST | ruff, catálogo fixo e Bandit |
-| Testes unitários e de integração | pytest, com PostgreSQL real |
+| `titulo-pr` | Título do PR em Conventional Commits (obrigatório) |
+| Lint, testes e cobertura | ruff, catálogo fixo, Bandit, testes unitários e de integração, cobertura ≥ 60% |
+| Análise de dependências (SCA) | Dependência nova com vulnerabilidade crítica |
 | Varredura de segredos (gitleaks) | Tokens e senhas no histórico |
-| Build da imagem do Airflow e importação das DAGs | Dockerfile e DAGs válidos |
+| Build do Airflow e importação das DAGs | Dockerfile e DAGs válidos |
 | Validação do Asset Bundle | `databricks.yml` e `resources/` válidos |
+| `ci-ok` | Resumo de todos os jobs acima (obrigatório) |
 
-Se algum check falhar: abra *Details* no PR, corrija na mesma branch, faça um novo commit e `git push`.
-O CI roda de novo e o auto-merge continua ativo.
+Somente `ci-ok` e `titulo-pr` são obrigatórios na proteção da `main` (ADR 0004). Se algum check falhar:
+abra *Details* no PR, corrija na mesma branch, faça um novo commit e `git push`. Se o problema for o
+título, basta editar o título do PR.
 
 ### Passo 8 — Merge e deploy em staging (automáticos)
 
-Com os 5 checks verdes e a aprovação do par, o GitHub faz o **squash merge**, apaga a branch e fecha a issue (por causa do
-`Closes #15`). O CD faz o deploy em **staging** e executa o job com os gates de qualidade:
+Com `ci-ok` e `titulo-pr` verdes e a aprovação do par, o GitHub faz o **squash merge** (o título do PR vira
+o commit na `main`), apaga a branch e fecha a issue. O CD então:
+
+1. calcula a versão a partir dos títulos dos PRs desde a última tag;
+2. gera o **pacote** uma única vez;
+3. publica o pacote em **staging** (target `dev`) e roda o job com os gates de qualidade.
 
 ```bash
 gh run list --workflow cd.yml --limit 3
 gh run watch
 ```
 
+| Título do PR mesclado | Versão |
+|---|---|
+| `feat(...): ...` | MINOR — `v1.0.0` → `v1.1.0` |
+| `fix(...): ...` ou `perf(...): ...` | PATCH — `v1.0.0` → `v1.0.1` |
+| `feat!: ...` ou `BREAKING CHANGE:` na descrição | MAJOR — `v1.1.0` → `v2.0.0` (aciona o CCM) |
+| `docs`, `chore`, `ci`, `test`, `refactor`, `style` | sem versão nova; produção não roda |
+
+PRs que alteram só `docs/` ou arquivos `.md` nem disparam o CD.
+
 ---
 
 ## 4️⃣ Produção
 
-### Passo 9 — Atualizar a `main`
+### Passo 9 — Aprovar o deploy
+
+Quando há versão nova, o job **Produção** do CD fica em *Waiting for review*:
+*Actions › CD › (execução do merge) › Review deployments › production › Approve and deploy*.
+
+Antes de aprovar, confira o resultado de staging (job executado e gates de qualidade aprovados) e,
+se quiser, baixe o pacote em **Artifacts**.
+
+### Passo 10 — Conferir a baseline
+
+Aprovado, o CD publica o **mesmo pacote** no target `prd`, roda o smoke test e cria a baseline:
+tag `vX.Y.Z` + Release com as notas (Funcionalidades, Correções, Outros) e o `.zip` anexado.
 
 ```bash
-git checkout main
-git pull
+gh release view v1.1.0
 ```
 
-### Passo 10 — Criar a tag da versão
+Confira também o registro em *Settings › Environments › production* (quem aprovou e quando).
 
-O número segue o [SemVer](https://semver.org/lang/pt-BR/) aplicado ao modelo Gold. Consulte a última versão
-com `git tag --sort=-v:refname | head -1`.
-
-| Mudança desde a última versão | Exemplo | Incremento |
-|---|---|---|
-| Correção, sem impacto no modelo Gold | Corrigir regra, ajustar documentação | PATCH — `v0.2.0` → `v0.2.1` |
-| Algo novo e compatível | Nova coluna ou tabela na Gold | MINOR — `v0.2.1` → `v0.3.0` |
-| Mudança incompatível (aciona o CCM) | Remover coluna, mudar o grão | MAJOR — `v0.3.0` → `v1.0.0` |
-
-```bash
-git tag v0.3.0
-git push origin v0.3.0
-```
-
-### Passo 11 — Aprovar o deploy
-
-No GitHub: *Actions › CD › v0.3.0 › Review deployments › production › Approve and deploy*.
-O deploy só continua após a aprovação de um dos revisores do Environment `production`.
-
-### Passo 12 — Acompanhar e conferir
-
-```bash
-gh run watch
-gh release view v0.3.0
-```
-
-Confira:
-
-- o **Release** publicado em *Code › Releases*, com as notas geradas automaticamente;
-- o registro do deploy em *Settings › Environments › production* (quem aprovou e quando);
-- no Databricks, a execução do `job_comercial_diario` de Produção e o dashboard atualizado.
-
-### Passo 13 — Atualizar o ambiente local
+### Passo 11 — Atualizar o ambiente local
 
 Necessário quando a mudança alterou o extrator, o ERP simulado ou as DAGs:
 
 ```bash
-git checkout v0.3.0
+git fetch --tags
+git checkout v1.1.0
 docker compose up -d --build
 git checkout main
 ```
@@ -250,59 +245,62 @@ git checkout main
 ## ⚡ Resumo em uma tela
 
 ```bash
-# 0-1. Planejamento
+# Planejamento
 gh issue create --title "..." --label feat
 git checkout main && git pull
 gh issue develop 15 --name feature/15-descricao --checkout
 
-# 2-4. Desenvolvimento
-ruff check . && python .github/scripts/verificar_isolamento.py && pytest tests/unit
+# Desenvolvimento
+ruff check . && python .github/scripts/verificar_isolamento.py && python -m pytest tests/unit
 databricks bundle deploy -t dev && databricks bundle run -t dev job_comercial_diario   # opcional
 
-# 5-8. Integração
+# Integração (o título do PR define a versão)
 git add . && git commit -m "feat(gold): descrição"
 git push -u origin feature/15-descricao
-gh pr create --fill --body "Closes #15" && gh pr merge --auto --squash
+gh pr create --title "feat(gold): descrição" --body "Closes #15"
 gh pr edit --add-reviewer GabBruno
+gh pr merge --auto --squash
 gh pr checks --watch
 
-# 9-13. Produção (após o merge)
-git checkout main && git pull
-git tag v0.3.0 && git push origin v0.3.0
-# aprovar em Actions › CD › Review deployments
-gh run watch && gh release view v0.3.0
-git checkout v0.3.0 && docker compose up -d --build && git checkout main
+# Produção (após o merge): aprovar em Actions › CD › Review deployments
+gh run watch
+gh release view v1.1.0
 ```
 
 ---
 
 ## ⏪ Rollback
 
-1. **Código:** reexecute o CD da tag anterior e aprove em *Review deployments*:
+1. **Código:** *Actions › Rollback › Run workflow*, informe a tag estável (ex.: `v1.0.0`) e aprove em
+   *Review deployments*. O workflow baixa o pacote anexado à Release, publica de novo no target `prd`
+   sem recompilar, roda o job e marca a Release como **Latest**.
    ```bash
-   gh run list --workflow cd.yml        # localize a execução da tag anterior
-   gh run rerun <id-da-execucao>
+   gh workflow run rollback.yml -f tag=v1.0.0
    ```
-2. **Ambiente local:** `git checkout <tag-anterior> && docker compose up -d --build`.
+2. **Ambiente local:** `git checkout v1.0.0 && docker compose up -d --build`.
 3. **Dados:** restaure a tabela com Time Travel e, se necessário, retroceda o watermark:
    ```sql
    DESCRIBE HISTORY silver.protheus.sc6;
    RESTORE TABLE silver.protheus.sc6 TO VERSION AS OF <versão>;
    UPDATE controle.ingestion_control SET ultimo_watermark = '<data-hora UTC>' WHERE tabela = 'sc6';
    ```
-4. **Contenção:** desligue a extração da tabela com `"ativo": false` em `conf/ingestao.json` (via PR).
-5. Registre o incidente e as ações em uma issue.
+4. **Correção da `main`:** branch `revert/<descricao>`, `git revert <commit>` e PR com título `revert: ...`.
+5. **Contenção:** desligue a extração da tabela com `"ativo": false` em `conf/ingestao.json` (via PR).
+6. Registre o incidente e as ações em uma issue.
 
 ---
 
 ## 🤖 Pull Requests do Dependabot
 
 O Dependabot abre PRs agrupados com atualizações **MINOR** e **PATCH** de bibliotecas, Actions e imagem Docker.
-Eles passam pelo mesmo CI. Com os 5 checks verdes:
+O título deles começa com `chore(deps)` (ou `ci` para as Actions), passa no `titulo-pr` e não gera
+versão nova. Eles passam pelo mesmo CI. Antes de mesclar, leia as notas da nova versão (*Release notes* na
+descrição do PR). Com `ci-ok` verde:
 
 1. Peça a aprovação do par de revisão; depois clique em *Squash and merge*.
 2. Se houver mais de um PR, após o primeiro merge use *Update branch* (ou comente `@dependabot rebase`) nos demais.
-3. As atualizações chegam a Produção na próxima tag.
+3. As atualizações chegam a Produção junto com a próxima versão (`feat` ou `fix`).
+4. Se o CI quebrar, comente no PR o que quebrou e feche **sem** mesclar.
 
 Versões **MAJOR** são ignoradas automaticamente e exigem avaliação manual (CCM).
 
@@ -313,7 +311,11 @@ Versões **MAJOR** são ignoradas automaticamente e exigem avaliação manual (C
 | Sintoma | Causa provável | Solução |
 |---|---|---|
 | Commit bloqueado pelo pre-commit | ruff, gitleaks ou notebook com outputs | Leia a mensagem, corrija e commite de novo (o ruff já aplica correções simples) |
-| Check "Lint, isolamento e SAST" vermelho | Lint, catálogo fixo ou alerta do Bandit | Rode `ruff check .` e `python .github/scripts/verificar_isolamento.py` localmente |
+| Check "Lint, testes e cobertura" vermelho | Lint, catálogo fixo, Bandit, teste ou cobertura abaixo de 60% | Rode `ruff check .`, `python .github/scripts/verificar_isolamento.py` e `python -m pytest tests` localmente |
+| `titulo-pr` vermelho | Título fora do Conventional Commits | Edite o título do PR (ex.: `fix(extrator): corrige watermark`) |
+| PR preso em *Expected — Waiting for status* | Check obrigatório que não roda | Deixe só `ci-ok` e `titulo-pr` como obrigatórios |
+| Job **Produção** aparece como *skipped* | Nenhum `feat`/`fix` desde a última tag | Esperado: não há versão nova |
+| *Resource not accessible by integration* ao criar a tag | Permissão do token do Actions | *Settings › Actions › General › Workflow permissions* → *Read and write* |
 | Botão de merge bloqueado com checks verdes | Falta a aprovação do par ou a branch está desatualizada | Peça a revisão (`gh pr edit --add-reviewer GabBruno`) ou clique em *Update branch* |
 | Par não consegue aprovar o PR | Convite de colaborador não aceito | O par aceita o convite em github.com/notifications |
 | Deploy em production parado | Aguardando aprovação | *Actions › CD › Review deployments* |

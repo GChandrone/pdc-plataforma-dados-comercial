@@ -1,12 +1,18 @@
-# Atualizações de dependências: um PR agrupado por ecossistema, por semana,
-# somente com versões MINOR e PATCH (versões MAJOR exigem avaliação manual e passam pelo CCM).
+# Dependabot — PGC seção 13 (dependências de terceiros como itens de configuração)
+# Abre PRs agrupados de atualização; eles passam pelo mesmo CI e revisão dos demais.
+# O prefixo "chore(deps)" faz o título passar no check titulo-pr e não gera versão nova.
+# Versões MAJOR são ignoradas: exigem avaliação manual (e, se de alto risco, o CCM).
+
 version: 2
 updates:
   - package-ecosystem: pip
     directories: ["/", "/extrator", "/erp_simulado"]
     schedule:
       interval: weekly
+      day: monday
     open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(deps)'
     groups:
       python:
         patterns: ["*"]
@@ -16,19 +22,24 @@ updates:
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
-    directory: "/airflow"
+    directory: /airflow
     schedule:
       interval: monthly
     open-pull-requests-limit: 1
+    commit-message:
+      prefix: 'chore(deps)'
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+  # As próprias actions usadas nos workflows também são dependências.
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
       interval: monthly
     open-pull-requests-limit: 2
+    commit-message:
+      prefix: 'ci'
     groups:
       actions:
         patterns: ["*"]

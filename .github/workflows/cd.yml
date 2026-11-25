@@ -1,61 +1,174 @@
+# Entrega Contínua — PGC seções 3.3, 6 e 9 (Aula 3)
+#
+#   merge na main
+#     └─ preparar ...... calcula a versão (SemVer pelos títulos dos PRs) e gera o PACOTE uma única vez
+#         └─ staging ... publica o MESMO pacote no target dev do Databricks e roda o job com os gates
+#             └─ producao ... AGUARDA APROVAÇÃO (Environment "production"), publica o MESMO pacote
+#                             no target prd, roda o smoke test e cria a baseline:
+#                             tag vX.Y.Z + Release com notas e pacote anexado
+#
+# Produção só acontece quando há versão nova (feat/fix/perf ou "!" desde a última tag).
+# docs, chore, ci, test, refactor e style não geram versão.
+
 name: CD
 
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"]
-
-permissions:
-  contents: read
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
 
 concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
-  desenvolvimento:
-    name: Deploy em Desenvolvimento
-    if: github.ref == 'refs/heads/main'
+  preparar:
+    name: Versão e pacote
     runs-on: ubuntu-latest
-    # Environment staging do GitHub -> target dev do Asset Bundle
-    environment: staging
+    outputs:
+      versao: ${{ steps.versao.outputs.versao }}
+      release: ${{ steps.versao.outputs.release }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # histórico completo: necessário para achar a última tag
+
+      - name: Calcular próxima versão (Conventional Commits)
+        id: versao
+        env:
+          NOTAS_ARQUIVO: notas-release.md
+        run: node scripts/proxima-versao.mjs
+
+      # Pacote = código-fonte da versão (bundle Databricks, notebooks, extrator, DAGs e configurações).
+      # O MESMO pacote é publicado em staging e em produção, e fica anexado à Release.
+      - name: Empacotar (código-fonte)
+        env:
+          VERSAO: ${{ steps.versao.outputs.versao }}
+        run: |
+          mkdir pacote
+          git archive HEAD | tar -x -C pacote
+          echo "$VERSAO" > pacote/VERSAO
+
+      - name: Compactar pacote
+        env:
+          NOME: ${{ github.event.repository.name }}-${{ steps.versao.outputs.versao }}
+        run: |
+          (cd pacote && zip -qr "../$NOME.zip" .)
+          echo "Pacote gerado: $NOME.zip"
+
+      - name: Guardar pacote (o MESMO vai para staging e produção)
+        uses: actions/upload-artifact@v7
+        with:
+          name: pacote
+          path: |
+            *.zip
+            notas-release.md
+          retention-days: 30
+
+  staging:
+    name: Staging
+    needs: preparar
+    runs-on: ubuntu-latest
+    # Environment staging (somente branches protegidas) -> target dev do Asset Bundle
+    environment:
+      name: staging
+      url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: pacote
+
+      - name: Extrair pacote
+        run: mkdir pacote && unzip -q ./*.zip -d pacote
+
       - uses: databricks/setup-cli@main
+
       - name: Deploy do bundle (target dev)
+        working-directory: pacote
         run: databricks bundle deploy -t dev
+
       - name: Setup idempotente (catálogos, schemas e volume de landing)
+        working-directory: pacote
         run: databricks bundle run -t dev job_setup
+
       - name: Execução do job com gates de qualidade de dados
+        working-directory: pacote
         run: databricks bundle run -t dev job_comercial_diario
 
+      - name: Resumo
+        env:
+          VERSAO: ${{ needs.preparar.outputs.versao }}
+          RELEASE: ${{ needs.preparar.outputs.release }}
+        run: |
+          {
+            echo "## Staging — v$VERSAO"
+            echo "- Pacote candidato publicado no target **dev** e job executado com os gates de qualidade."
+            echo "- Pacote disponível na seção **Artifacts** desta execução."
+            if [ "$RELEASE" = "true" ]; then
+              echo "- Aprove o job **Produção** para publicar no target **prd** e criar a baseline v$VERSAO."
+            else
+              echo "- Sem commit feat/fix desde a última tag: não haverá release nova."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   producao:
-    name: Deploy em Produção
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: Produção
+    needs: [preparar, staging]
+    if: needs.preparar.outputs.release == 'true'
     runs-on: ubuntu-latest
-    # Environment production do GitHub -> target prd do Asset Bundle.
-    # Exige aprovação manual (required reviewers) antes de liberar os secrets.
-    environment: production
-    permissions:
-      contents: write
+    # Environment "production" com Required reviewers: o job PAUSA até a aprovação (PGC 6.1).
+    environment:
+      name: production
+      url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ needs.preparar.outputs.versao }}
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: pacote
+          path: entrega
+
+      - name: Extrair pacote
+        run: mkdir pacote && unzip -q entrega/*.zip -d pacote
+
       - uses: databricks/setup-cli@main
-      - name: Validação do bundle (target prd)
-        run: databricks bundle validate -t prd
+
       - name: Deploy do bundle (target prd)
+        working-directory: pacote
         run: databricks bundle deploy -t prd
+
       - name: Setup idempotente
+        working-directory: pacote
         run: databricks bundle run -t prd job_setup
+
       - name: Smoke test (execução do job em Produção)
+        working-directory: pacote
         run: databricks bundle run -t prd job_comercial_diario
-      - name: Publicação do GitHub Release (baseline)
+
+      - name: Criar baseline — tag + Release com notas e pacote (PGC 9)
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" --generate-notes --verify-tag
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.preparar.outputs.versao }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "::notice::Tag $TAG já existe — nada a fazer."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+          gh release create "$TAG" entrega/*.zip --title "$TAG" \
+            --notes-file entrega/notas-release.md --verify-tag

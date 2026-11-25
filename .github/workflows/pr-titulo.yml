@@ -1,0 +1,43 @@
+# Verifica se o TÍTULO do Pull Request segue Conventional Commits (PGC 3.3 e 4.2).
+#
+# Por que o título? O repositório é configurado para "Squash and merge":
+# todos os commits do PR viram UM commit na main, cuja mensagem é o título do PR.
+# É dessa mensagem que o pipeline de CD calcula a próxima versão (feat -> MINOR,
+# fix -> PATCH) e gera as notas de release.
+#
+# Fica num workflow separado do CI para que editar o título não precise
+# reexecutar build e testes.
+
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  titulo-pr:
+    name: titulo-pr
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Validar título no padrão <tipo>(<escopo>): <descrição>'
+        env:
+          # Passar por variável de ambiente (e não direto no script) evita
+          # injeção de comandos por um título malicioso.
+          TITULO: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Título: $TITULO"
+          PADRAO='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{3,}$'
+          if echo "$TITULO" | grep -Eq "$PADRAO"; then
+            echo "Título válido."
+          else
+            echo "::error::Título fora do padrão Conventional Commits."
+            echo "Exemplos válidos:"
+            echo "  feat(web): adiciona formulário de doação"
+            echo "  fix(api): corrige validação de e-mail"
+            echo "  docs: atualiza guia de onboarding"
+            exit 1
+          fi
