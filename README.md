@@ -165,11 +165,11 @@ A cada carga, o job **falha** se qualquer gate for reprovado — dado errado nã
 
 ```mermaid
 flowchart LR
-    A["📝 Issue"] --> B["🌿 Branch"] --> C["🔀 Pull Request"] --> D{"🤖 CI<br/>5 checks"}
+    A["📝 Issue"] --> B["🌿 Branch"] --> C["🔀 Pull Request"] --> D{"🤖 ci-ok<br/>+ titulo-pr"}
     D -- "❌ falhou" --> C
-    D -- "✅ passou" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> E["🔀 Merge na main"] --> F["🧪 Deploy em staging<br/>automático"]
-    F --> G["🏷️ Tag vX.Y.Z"] --> H{"👤 Aprovação"}
-    H -- "✅ aprovado" --> I["🌐 Deploy em production"] --> J["📦 GitHub Release"]
+    D -- "✅ passou" --> RV{"👀 Aprovação<br/>do par"} -- "✅" --> E["🔀 Squash merge"]
+    E --> V["🔢 Versão pelo<br/>título do PR"] --> F["🧪 Staging<br/>automático"]
+    F --> H{"👤 Aprovação"} -- "✅ aprovado" --> I["🌐 Production"] --> J["📦 Tag + Release<br/>com pacote"]
 ```
 
 <table>
@@ -178,22 +178,26 @@ flowchart LR
 
 **🤖 CI — em todo Pull Request**
 
-- 🧹 Lint (ruff) e verificação de catálogo fixo
-- 🔒 SAST (Bandit) e varredura de segredos (gitleaks)
-- 🧪 Testes unitários e de integração com PostgreSQL real
-- 🐳 Build da imagem do Airflow e importação das DAGs
+- 🏷️ `titulo-pr`: título em Conventional Commits
+- 🧹 Lint (ruff), catálogo fixo e SAST (Bandit)
+- 🧪 Testes unitários e de integração com cobertura ≥ 60%
+- 📦 Análise de dependências (bloqueia vulnerabilidade crítica)
+- 🔒 Varredura de segredos (gitleaks)
+- 🐳 Build do Airflow e importação das DAGs
 - 🧱 Validação do Asset Bundle do Databricks
+- ✅ `ci-ok`: resume tudo (único check de CI obrigatório)
 
 </td>
 <td width="50%" valign="top">
 
-**🚚 CD — após o merge e a cada tag**
+**🚚 CD — a cada merge na `main`**
 
-- 🧪 `main` → deploy automático em **staging**
-- 🏷️ tag `vX.Y.Z` → aprovação manual → **production**
-- 💨 Smoke test em Produção
-- 📦 Release com notas geradas automaticamente
-- ⏪ Rollback: reexecutar o CD da tag anterior
+- 🔢 Versão calculada pelo título do PR (`feat` → MINOR, `fix` → PATCH)
+- 📦 Pacote gerado **uma vez** e promovido entre os ambientes
+- 🧪 Deploy automático em **staging**
+- 👤 Aprovação → deploy em **production** e smoke test
+- 🏷️ Tag `vX.Y.Z` + Release com notas e pacote (baseline)
+- ⏪ Rollback em um clique (*Actions › Rollback*)
 
 </td>
 </tr>
@@ -206,11 +210,11 @@ flowchart LR
 | **Environment do GitHub** | `staging` | `production` · **aprovação obrigatória** |
 | **Target do Asset Bundle** | `dev` | `prd` |
 | **Catálogos** | `dev_bronze` · `dev_silver` · `dev_gold` | `bronze` · `silver` · `gold` |
-| **Quando recebe deploy** | A cada merge na `main` | Tag `vX.Y.Z` aprovada |
+| **Quando recebe deploy** | A cada merge na `main` | Versão nova (`feat`/`fix`) aprovada no Environment |
 | **Origem dos dados** | Landing compartilhada | Landing compartilhada |
 
-> 🔒 A `main` é protegida: só aceita mudanças por Pull Request com os 5 checks verdes e **1 aprovação do par de
-> revisão**, com histórico linear (somente squash merge) — nem administradores pulam essa regra. Versões seguem o [SemVer](https://semver.org/lang/pt-BR/) aplicado ao modelo Gold e os commits seguem
+> 🔒 A `main` é protegida: só aceita mudanças por Pull Request com `ci-ok` e `titulo-pr` verdes e **1 aprovação do
+> par de revisão**, com histórico linear (somente squash merge) — nem administradores pulam essa regra. Versões seguem o [SemVer](https://semver.org/lang/pt-BR/) aplicado ao modelo Gold e os commits seguem
 > [Conventional Commits](https://www.conventionalcommits.org/pt-br/).
 
 ---
@@ -251,8 +255,9 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 <details>
 <summary><b>⏪ Rollback e recuperação</b></summary>
 
-1. **Código:** reexecutar o workflow **CD** da tag anterior e, na máquina local,
-   `git checkout <tag-anterior> && docker compose up -d --build`.
+1. **Código:** *Actions › Rollback › Run workflow* com a tag anterior (ex.: `v1.0.0`) e aprovar em
+   *Review deployments*. O pacote da Release é republicado em produção sem recompilar. Na máquina local:
+   `git checkout <tag-anterior> && docker compose up -d --build`. Depois, corrigir a `main` com um PR `revert: ...`.
 2. **Dados:** restaurar a tabela com Time Travel e, se preciso, retroceder o watermark:
    ```sql
    RESTORE TABLE silver.protheus.sc6 TO VERSION AS OF <versão>;
@@ -265,12 +270,12 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 <details>
 <summary><b>🔄 Fluxo de uma mudança, passo a passo</b></summary>
 
-1. Abrir uma issue (Funcionalidade, Correção ou Mudança de dados).
-2. Criar a branch `feature/<issue>-<descrição>` e commitar, por exemplo `feat(gold): inclui vlr_desconto`.
-3. Abrir o Pull Request com `Closes #<issue>`, aguardar os 5 checks e a aprovação do par de revisão.
-4. Merge na `main` → deploy automático em **staging**.
-5. `git tag vX.Y.Z && git push origin vX.Y.Z` → aprovar em **Actions › CD › Review deployments**.
-6. Atualizar o ambiente local: `git checkout vX.Y.Z && docker compose up -d --build`.
+1. Abrir uma issue (Funcionalidade, Defeito ou Mudança de alto risco).
+2. Criar a branch `feature/<issue>-<descrição>`.
+3. Abrir o Pull Request com título em Conventional Commits (ex.: `feat(gold): inclui vlr_desconto`) e `Closes #<issue>`.
+4. Aguardar `ci-ok` e `titulo-pr` e a aprovação do par de revisão; fazer o squash merge.
+5. O CD calcula a versão, publica em **staging** e aguarda a aprovação em **Actions › CD › Review deployments**.
+6. Aprovado: produção atualizada e Release `vX.Y.Z` criada. Atualizar o ambiente local: `git checkout vX.Y.Z && docker compose up -d --build`.
 
 📖 Guia completo, com todos os comandos: [`docs/guia-desenvolvimento.md`](docs/guia-desenvolvimento.md)
 
@@ -303,6 +308,7 @@ ruff check . && python .github/scripts/verificar_isolamento.py
 | Documento | Descrição |
 |---|---|
 | 📘 [Plano de Gerenciamento de Configuração](docs/pgc/) | O PGC do projeto — item de configuração versionado |
+| 🚀 [Onboarding](docs/onboarding.md) | Instalar, testar e abrir o primeiro Pull Request |
 | 🛠️ [Guia de desenvolvimento](docs/guia-desenvolvimento.md) | Passo a passo com os comandos, da issue até Produção |
 | 🧭 [ADRs](docs/adr/) | Decisões de arquitetura e suas justificativas |
 | 📖 [Dicionário de dados](docs/dicionario-dados.md) | Tabelas e colunas da camada Gold |

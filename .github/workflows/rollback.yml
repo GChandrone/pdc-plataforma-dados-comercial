@@ -1,0 +1,72 @@
+# Rollback — PGC 6.4 (Aula 3)
+#
+# Aba Actions -> "Rollback" -> Run workflow -> tag (ex.: v1.0.0).
+# NÃO recompila: usa o pacote anexado à Release daquela tag — a própria baseline.
+#   - publica de novo esse pacote no target prd do Databricks e roda o job com os gates
+#   - marca a Release escolhida como "Latest" (a versão oficial volta a ser ela)
+# Passa pelo mesmo gate de aprovação do Environment "production".
+#
+# Dados: o rollback devolve o CÓDIGO. Se uma carga gravou dados incorretos, restaure as
+# tabelas com Time Travel (RESTORE TABLE) conforme o runbook do README.
+
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da versão para a qual voltar (ex.: v1.0.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: cd-refs/heads/main # mesma fila do CD: nunca roda junto com um deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rollback:
+    name: Rollback para ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.tag }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ inputs.tag }}
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Validar tag e baixar o pacote da Release
+        run: |
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || {
+            echo "::error::Tag inválida: use o formato vX.Y.Z"; exit 1; }
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.zip' --dir entrega
+          ls entrega
+
+      - name: Extrair pacote
+        run: mkdir pacote && unzip -q entrega/*.zip -d pacote
+
+      - uses: databricks/setup-cli@main
+
+      - name: Republicar a versão no target prd
+        working-directory: pacote
+        run: |
+          databricks bundle deploy -t prd
+          databricks bundle run -t prd job_setup
+          databricks bundle run -t prd job_comercial_diario
+
+      - name: Marcar a Release como a versão oficial (Latest)
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
+
+      - name: Registrar no resumo (auditoria — PGC 10.3)
+        run: |
+          {
+            echo "## Rollback executado"
+            echo "- Versão oficial voltou para **$TAG** (pacote da Release republicado no target prd)"
+            echo "- Solicitado por: @$GITHUB_ACTOR"
+            echo "- Próximo passo: abrir uma Issue com o motivo e corrigir a main (revert ou fix via PR)."
+            echo "- Ambiente local: \`git checkout $TAG && docker compose up -d --build\`."
+          } >> "$GITHUB_STEP_SUMMARY"

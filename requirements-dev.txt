@@ -2,6 +2,7 @@
 -e ./extrator
 -e ./erp_simulado
 pytest==8.4.2
+pytest-cov==6.0.0
 pyspark==3.5.9
 ruff==0.17.2
 bandit[toml]==1.9.4

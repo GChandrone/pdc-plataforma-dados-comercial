@@ -1,0 +1,45 @@
+name: Mudança de alto risco (CCM)
+description: Mudança que exige decisão do Comitê de Controle de Mudanças — PGC 8.2
+title: '[Alto risco] '
+labels: ['ccm']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use este formulário apenas para mudanças que se enquadram no PGC 8.2.
+        O CCM (Gabriel, responsável pelo projeto, e GabBruno, par de revisão) registra a decisão nos comentários.
+  - type: checkboxes
+    id: criterio
+    attributes:
+      label: Por que é alto risco?
+      options:
+        - label: 'Mudança incompatível no modelo Gold (remover ou renomear coluna, mudar o grão) — versão MAJOR'
+        - label: Alteração de regra de negócio de um indicador comercial
+        - label: 'Reprocessamento completo, RESTORE de tabela ou remoção de objeto em Produção'
+        - label: 'Passar a tratar dado pessoal (ex.: CPF/CNPJ na Silver ou Gold) — LGPD'
+        - label: 'Exceção ao fluxo padrão (ex.: hotfix direto em Produção)'
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição da mudança
+    validations:
+      required: true
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+      description: Tabelas, jobs, dashboard e consumidores afetados.
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Plano de rollback
+      description: 'Cite uma tag real (ex.: voltar para v1.1.0 pelo workflow Rollback) e, se houver dados, o RESTORE TABLE da versão anterior.'
+    validations:
+      required: true
+  - type: textarea
+    id: decisao
+    attributes:
+      label: Decisão do CCM (preenchido pelo comitê)
+      placeholder: Aprovada / Aprovada com ressalvas / Rejeitada — justificativa
