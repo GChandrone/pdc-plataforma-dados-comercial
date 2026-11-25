@@ -1,4 +1,4 @@
-from pdc_lib.qualidade import contar_duplicidades, contar_nulos, contar_orfaos, reconciliar
+from pdc_lib.qualidade import contar_duplicidades, contar_negativos, contar_nulos, contar_orfaos, reconciliar
 
 
 def test_duplicidades_e_nulos(spark):
@@ -26,3 +26,14 @@ def test_reconciliar_aponta_divergencias(spark):
                                    "lote string, tabela string, empresa string, qtd_bronze long")
     divergencias = reconciliar(manifesto, bronze).collect()
     assert [(d.tabela, d.registros, d.qtd_bronze) for d in divergencias] == [("sc6", 30, 29)]
+
+
+def test_negativos_por_coluna(spark):
+    df = spark.createDataFrame(
+        [(5.0, 10.0), (-1.0, 10.0), (3.0, -2.5), (None, 0.0)], "qtd_vendida double, vlr_unitario double")
+    assert contar_negativos(df, ["qtd_vendida", "vlr_unitario"]) == {"qtd_vendida": 1, "vlr_unitario": 1}
+
+
+def test_negativos_sem_colunas(spark):
+    df = spark.createDataFrame([(-1.0,)], "qtd_vendida double")
+    assert contar_negativos(df, []) == {}
