@@ -22,6 +22,14 @@ def contar_orfaos(fato: DataFrame, dimensao: DataFrame, chaves: list[str]) -> in
     return fato.select(*chaves).distinct().join(dimensao.select(*chaves).distinct(), chaves, "left_anti").count()
 
 
+def contar_negativos(df: DataFrame, colunas: list[str]) -> dict[str, int]:
+    """Quantidade de registros com valor negativo em cada coluna (nulos não contam)."""
+    if not colunas:
+        return {}
+    linha = df.agg(*[F.sum(F.when(F.col(c) < 0, 1).otherwise(0)).alias(c) for c in colunas]).first()
+    return {c: int(linha[c] or 0) for c in colunas}
+
+
 def reconciliar(manifesto: DataFrame, contagens_bronze: DataFrame) -> DataFrame:
     """Compara a contagem de registros declarada no manifesto do extrator com o que chegou na Bronze.
 
